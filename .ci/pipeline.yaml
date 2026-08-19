@@ -3,20 +3,33 @@ on:
   push:
     branches: [main]
 
+# Three root jobs: each runs as its own microVM stage, side by side.
 jobs:
-  verify:
+  build:
     image: golang:1.26-alpine
     # The job machine pulls its image itself, which needs the network.
     network:
       enabled: true
     steps:
-      - name: build
+      - name: compile
         run: go build ./...
-      - name: checks
-        parallel:
-          - name: unit tests
-            run: go test -v ./...
-          - name: vet
-            run: go vet ./...
-      - name: summary
-        run: echo "all checks passed on $(go version)"
+      - name: binary smoke
+        run: go run .
+
+  tests:
+    image: golang:1.26-alpine
+    network:
+      enabled: true
+    steps:
+      - name: unit tests
+        run: go test -v ./...
+
+  checks:
+    image: golang:1.26-alpine
+    network:
+      enabled: true
+    steps:
+      - name: vet
+        run: go vet ./...
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
