@@ -23,6 +23,27 @@ jobs:
     steps:
       - name: unit tests
         run: go test -v ./...
+      - name: mysql integration
+        run: |
+          apk add --no-cache mariadb mariadb-client
+          install -d -o mysql -g mysql /run/mysqld
+          mariadb-install-db --user=mysql --datadir=/var/lib/mysql
+          mariadbd --user=mysql --datadir=/var/lib/mysql --bind-address=127.0.0.1 --skip-networking=0 --skip-name-resolve >/tmp/mariadb.log 2>&1 &
+
+          for attempt in $(seq 1 30); do
+            mariadb-admin ping --silent && break
+            sleep 1
+          done
+          mariadb-admin ping --silent || { cat /tmp/mariadb.log; exit 1; }
+
+          mariadb -uroot <<'SQL'
+          CREATE DATABASE buildbox_test;
+          CREATE USER 'buildbox'@'%' IDENTIFIED BY 'buildbox';
+          GRANT ALL PRIVILEGES ON buildbox_test.* TO 'buildbox'@'%';
+          FLUSH PRIVILEGES;
+          SQL
+
+          MYSQL_DSN='buildbox:buildbox@tcp(127.0.0.1:3306)/buildbox_test?parseTime=true' go test -v -run '^TestMySQL' ./...
 
   checks:
     image: golang:1.26-alpine
