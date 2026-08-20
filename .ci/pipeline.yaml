@@ -16,7 +16,18 @@ jobs:
       - name: binary smoke
         run: go run .
 
+  checks:
+    image: golang:1.26-alpine
+    network:
+      enabled: true
+    steps:
+      - name: vet
+        run: go vet ./...
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+
   tests:
+    needs: [build, checks]
     image: golang:1.26-alpine
     network:
       enabled: true
@@ -45,12 +56,3 @@ jobs:
 
           MYSQL_DSN='buildbox:buildbox@tcp(127.0.0.1:3306)/buildbox_test?parseTime=true' go test -v -run '^TestMySQL' ./...
 
-  checks:
-    image: golang:1.26-alpine
-    network:
-      enabled: true
-    steps:
-      - name: vet
-        run: go vet ./...
-      - name: gofmt
-        run: test -z "$(gofmt -l .)"
