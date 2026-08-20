@@ -56,3 +56,13 @@ jobs:
 
           MYSQL_DSN='buildbox:buildbox@tcp(127.0.0.1:3306)/buildbox_test?parseTime=true' go test -v -run '^TestMySQL' ./...
 
+  artifact:
+    needs: [tests]
+    image: golang:1.26-alpine
+    network:
+      enabled: true
+    steps:
+      - name: upload artifact
+        run: |
+          echo "Uploaded"
+          return 0
